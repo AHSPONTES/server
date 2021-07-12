@@ -22,6 +22,13 @@ fn get_file_list() -> String {
     listing
 }
 
+fn erase_file(param: &str) -> String {
+    match fs::remove_file(param) {
+        Ok(_) => String::from("Success"),
+        Err(err) => err.to_string(),
+    }
+}
+
 fn handle_req(conn: TcpStream) {
     let mut req = String::with_capacity(512);
     let mut response = String::with_capacity(MAX_LIST);
@@ -36,8 +43,18 @@ fn handle_req(conn: TcpStream) {
         let mut params = req.split_whitespace();
         let command = params.next().unwrap();
         match command {
-            "flist" => response = get_file_list(),
-            "md" => response = make_directory(params.next().unwrap()),
+            "flist" => {
+                println!("flist has been executed!");
+                response = get_file_list();
+            }
+            "ferase" => {
+                println!("ferase has been executed!");
+                response = erase_file(params.next().unwrap());
+            }
+            "md" => {
+                println!("md has been executed!");
+                response = make_directory(params.next().unwrap());
+            }
             _ => response = String::from("Unacceptable command"),
         };
         match reader.write(&response.into_bytes()) {
@@ -52,7 +69,9 @@ fn handle_req(conn: TcpStream) {
 fn main() -> std::io::Result<()> {
     let listener = TcpListener::bind("0.0.0.0:3333")?;
 
+    println!("Waiting a request!");
     for stream in listener.incoming() {
+        println!("A request has come in!");
         handle_req(stream?);
     }
 
