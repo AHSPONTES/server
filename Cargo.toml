@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 bufstream = "0.1.4"
+regex = "1.5.4"

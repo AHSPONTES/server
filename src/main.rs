@@ -1,4 +1,3 @@
-use bufstream::BufStream;
 use std::fs;
 use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
@@ -29,18 +28,24 @@ fn erase_file(param: &str) -> String {
     }
 }
 
-fn handle_req(conn: TcpStream) {
-    let mut req = String::with_capacity(512);
+fn handle_req(mut conn: TcpStream) {
+    println!("start handle_req");
+    let mut reqbytes = [0; 512];
     let mut response = String::with_capacity(MAX_LIST);
-    let mut reader = BufStream::new(&conn);
-    match reader.write(b"> ") {
+
+    match conn.write(b"> ") {
         Ok(_) => (),
         Err(err) => println!("Received an error on write! {}", err),
     };
 
-    let size = reader.read_line(&mut req);
-    if size.unwrap() > 0 {
-        let mut params = req.split_whitespace();
+    println!("waiting something to read");
+    let requestsize = conn.read(&mut reqbytes);
+    let req = String::from_utf8_lossy(&reqbytes);
+    let size = requestsize.unwrap();
+    let mut request: String = String::from_utf8(reqbytes[..size].to_vec()).unwrap();
+    if size > 0 {
+        println!("Received: {}", request);
+        let mut params = request.split_whitespace();
         let command = params.next().unwrap();
         match command {
             "flist" => {
@@ -57,11 +62,9 @@ fn handle_req(conn: TcpStream) {
             }
             _ => response = String::from("Unacceptable command"),
         };
-        match reader.write(&response.into_bytes()) {
+        match conn.write(&response.as_bytes()) {
             Ok(_) => (),
-            Err(err) => {
-                println!("Received an error on write! {}", err)
-            }
+            Err(err) => println!("Received an error on write! {}", err),
         };
     }
 }
@@ -73,6 +76,7 @@ fn main() -> std::io::Result<()> {
     for stream in listener.incoming() {
         println!("A request has come in!");
         handle_req(stream?);
+        println!("waiting");
     }
 
     Ok(())
